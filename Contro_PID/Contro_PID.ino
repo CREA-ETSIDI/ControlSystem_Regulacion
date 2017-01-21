@@ -9,8 +9,8 @@ int maxRange = 200; // maximo rango
 int minRange = 0; // Minimo rango
 float distancia, duracion, output, drive=0, error, previous_error, integral=0, derivative=0;
 int i=0;
-float ref=20;
-float kp=2, kd=1, ki=-5.5271e-11;
+float ref=30;
+float kp=-0.013066070600662, kd=-6.680725032830739e-04, ki=-0.063886105214067;
 
 void setup() {
   Serial.begin(9600);
@@ -71,5 +71,7 @@ void loop() {
     }
   }
   delay(10);
-  Serial.println(drive);
+  Serial.print(drive);
+  Serial.print("\t");
+  Serial.println(distancia);
 }
