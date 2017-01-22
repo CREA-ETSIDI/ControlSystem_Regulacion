@@ -5,81 +5,77 @@
 #define fwdPin 3
 #define bwdPin 5
 
-//const float m_pi=0.0031416;
-
 int output;
 
-char cadena[30]; //Creamos un array que almacenará los caracteres que escribiremos en la consola del PC. Le asignamos  un tope de caracteres, en este caso 30
-byte posicion=0;  //Variable para cambiar la posición de los caracteres del array
+char cadena[4];       //Creamos un array que almacenará los caracteres que escribiremos en la consola del PC
+byte posicion=0;      //Variable para cambiar la posición de los caracteres del array
 
-double distancia, duracion, tension, v_max=255, v_min=-255;
+double distancia, duracion, tension;    //Variables para el sensor de US y el controlador
 
-double ref=30;           //Distancia de referencia
+double ref=30;                          //Distancia de referencia inicial
 
-double Kp=9.124631746167328, Kd=1.446652977112854, Ki=14.388195686937985;                //Constantes del PID
+double Kp=27.65280482674217, Kd=4.887091689039301, Ki=39.11721241597037;    //Constantes del PID 
 
-PID Control(&distancia, &tension, &ref, Kp, Ki, Kd,REVERSE);
+PID Control(&distancia, &tension, &ref, Kp, Ki, Kd,REVERSE);                //Declaramos el PID llamado Control
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(9600);                     //Comunicacion serial para enviar y recibir datos a traves del PC
   
-  pinMode (trigPin,OUTPUT);
+  pinMode (trigPin,OUTPUT);               //Configuración de los pines
   pinMode (echoPin,INPUT);
   pinMode (fwdPin,OUTPUT);
   pinMode (bwdPin,OUTPUT);                            
 
   Control.SetMode(AUTOMATIC);             //Encendemos el PID
-  Control.SetOutputLimits(v_min, v_max);
+  Control.SetOutputLimits(-255, 255);     //Limitamos los valores de salida del PID conforme a los limites del PWM
 }
 
 void loop() {
 
-  if(Serial.available()) //Nos dice si hay datos dentro del buffer
+  if(Serial.available())                //Si hay datos dentro del buffer
   {
-    memset(cadena, 0,sizeof(cadena));//memset borra el contenido del array  "cadena" desde la posición 0 hasta el final sizeof
+    memset(cadena, 0,sizeof(cadena));   //memset borra el contenido de "cadena" desde la posición 0 hasta el final
  
-    while(Serial.available()>0) //Mientras haya datos en el buffer ejecuta la función
+    while(Serial.available()>0)         //Mientras haya datos en el buffer
     {
-      delay(5); //Poner un pequeño delay para mejorar la recepción de datos
-      cadena[posicion]=Serial.read();//Lee un carácter del string "cadena" de la "posicion", luego lee el siguiente carácter con "posicion++"
+      delay(5);                         //Delay para mejorar la recepción de datos
+      cadena[posicion]=Serial.read();   //Lee los caracteres de "cadena" posicion a posicion
       posicion++;
     }
  
-    ref=atoi(cadena);//Convertimos la cadena de caracteres en enteros
-    posicion=0;//Ponemos la posicion a 0
+    ref=atoi(cadena);                   //Convertimos la cadena de caracteres en enteros y se lo asignamos a la referencia
+    posicion=0;                         //Ponemos la posicion a 0
   }
   
-  digitalWrite (trigPin,HIGH);
+  digitalWrite (trigPin,HIGH);          //Actualizacion de la distancia
   delayMicroseconds (1000);
   digitalWrite (trigPin,LOW);
   duracion = pulseIn(echoPin,HIGH);
   distancia=(duracion/2) / 29.1;
 
-  Control.Compute();
+  Control.Compute();                    //Actualizacion de la salida del PID
 
-  Serial.print(tension);
+  Serial.print(tension);                //Impresion serial de la referencia, la tension y la distancia
   Serial.print("\t");
   Serial.print(ref);
   Serial.print("\t");
   Serial.println(distancia);
-
+                                          //SALIDAS
   
- if (tension < 0)
+ if (tension < 0)                             //Si tension es negativa
     {
-      digitalWrite(fwdPin,LOW);               // el coche se mueve hacia atras
-      //output=map(tension,-5,0,255,0);         // se mapea tension para adecuarla al pulso pwm 
-      output=abs(tension);
-      analogWrite(bwdPin,output);
+      digitalWrite(fwdPin,LOW);               //El coche se mueve hacia atras
+      output=abs(tension);                    //Se adecua tension al valor PWM
+      analogWrite(bwdPin,output);             //Se escribe el valor analogico
     }
-  else if(tension > 0)
+  else if(tension > 0)                        //Si tension es positiva
     {
-      digitalWrite(bwdPin,LOW);               //el coche se mueve hacia delante
-      //output=map(tension,0,5,0,255);
-      output=tension;
-      analogWrite(fwdPin,output);
+      digitalWrite(bwdPin,LOW);               //El coche se mueve hacia delante;
+      analogWrite(fwdPin,tension);            //Se escribe el valor analogico
     }
-  else
+  else                                        //Si tension es cero
     {
-      output = 0;
+      digitalWrite(fwdPin,LOW);               //El coche no se mueve
+      digitalWrite(bwdPin,LOW); 
     }
 } 
